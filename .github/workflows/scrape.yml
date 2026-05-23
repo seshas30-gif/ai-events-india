@@ -1,10 +1,9 @@
 name: Scrape AI Events
 
 on:
+  workflow_dispatch:
   schedule:
-    # Runs every day at 7:00 AM IST (1:30 AM UTC)
     - cron: "30 1 * * *"
-  workflow_dispatch:  # Allow manual trigger from GitHub Actions UI
 
 jobs:
   scrape:
@@ -16,7 +15,7 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
+          cache: pip
           cache-dependency-path: backend/requirements.txt
 
       - name: Install dependencies
