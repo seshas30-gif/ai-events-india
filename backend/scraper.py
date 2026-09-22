@@ -54,7 +54,7 @@ Each item must have these fields (use null if unknown):
 - state: Indian state name (string or null)
 - venue: venue/location name (string or null)
 - description: 1-2 sentence summary (string or null)
-- url: event website URL (string or null)
+- url: the event's own official website or landing page (string or null)
 - organizer: organizing body name (string or null)
 - is_free: true/false/null
 - registration_url: direct registration link if different from url (string or null)
@@ -64,6 +64,7 @@ Rules:
 - Only include events related to AI, ML, Data Science, GenAI, LLM, NLP, Computer Vision, Robotics
 - Skip past events (before today: {today})
 - If you can't confirm it's in India, skip it
+- For "url", prefer the event's own official site/registration page. If a search result is a news article, blog post, or social media post *about* the event rather than the event's own page, only use that link if no official site appears anywhere in the results — never prefer a news/social link over an official one when both are present.
 - Return ONLY a valid JSON array, no other text
 
 JSON array:"""
