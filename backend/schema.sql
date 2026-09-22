@@ -3,6 +3,7 @@
 CREATE TABLE IF NOT EXISTS events (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
+    category TEXT DEFAULT 'ai' CHECK (category IN ('ai', 'product')),
     event_type TEXT CHECK (event_type IN ('conference', 'meetup', 'workshop', 'hackathon', 'summit', 'webinar', 'other')),
     start_date DATE,
     end_date DATE,
@@ -24,8 +25,13 @@ CREATE TABLE IF NOT EXISTS events (
 CREATE INDEX IF NOT EXISTS idx_events_status ON events(status);
 CREATE INDEX IF NOT EXISTS idx_events_city ON events(city);
 CREATE INDEX IF NOT EXISTS idx_events_event_type ON events(event_type);
+CREATE INDEX IF NOT EXISTS idx_events_category ON events(category);
 CREATE INDEX IF NOT EXISTS idx_events_start_date ON events(start_date);
 CREATE INDEX IF NOT EXISTS idx_events_is_new ON events(is_new);
+
+-- Migration for an already-existing table (fresh installs already get this
+-- column from the CREATE TABLE above — this is a no-op for those).
+ALTER TABLE events ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'ai' CHECK (category IN ('ai', 'product'));
 
 -- Auto-update status based on dates.
 -- end_date is frequently NULL (single-day events) — comparisons against a NULL

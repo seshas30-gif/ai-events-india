@@ -10,7 +10,7 @@ from models import ScrapeResult
 
 load_dotenv()
 
-app = FastAPI(title="AI Events India API", version="1.0.0")
+app = FastAPI(title="Tech Events India API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -21,6 +21,7 @@ app.add_middleware(
 
 CITIES = ["Bangalore", "Mumbai", "Delhi", "Hyderabad", "Chennai", "Pune", "Kolkata", "Ahmedabad", "Noida", "Gurgaon"]
 EVENT_TYPES = ["conference", "meetup", "workshop", "hackathon", "summit", "webinar", "other"]
+CATEGORIES = ["ai", "product"]
 
 
 @app.get("/health")
@@ -33,12 +34,13 @@ def list_events(
     status: Optional[str] = Query(default="upcoming", description="upcoming | ongoing | past"),
     city: Optional[str] = Query(default=None),
     event_type: Optional[str] = Query(default=None),
+    category: Optional[str] = Query(default=None, description="ai | product"),
     is_new: Optional[bool] = Query(default=None),
     limit: int = Query(default=100, le=500),
 ):
     db = get_client()
     refresh_event_statuses(db)
-    events = get_events(db, status=status, city=city, event_type=event_type, is_new=is_new, limit=limit)
+    events = get_events(db, status=status, city=city, event_type=event_type, category=category, is_new=is_new, limit=limit)
     return {"events": events, "count": len(events)}
 
 
@@ -58,7 +60,7 @@ def stats():
 
 @app.get("/filters")
 def filters():
-    return {"cities": CITIES, "event_types": EVENT_TYPES}
+    return {"cities": CITIES, "event_types": EVENT_TYPES, "categories": CATEGORIES}
 
 
 @app.post("/events/mark-seen")

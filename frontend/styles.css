@@ -238,6 +238,10 @@ main { min-width: 0; }
   letter-spacing: 0.5px;
 }
 
+.card-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.card-tags .card-type-tag,
+.card-tags .card-category-tag { margin-bottom: 0; }
+
 .card-type-tag {
   display: inline-block;
   font-size: 11px;
@@ -255,6 +259,19 @@ main { min-width: 0; }
 .tag-summit     { background: rgba(96,165,250,0.2); color: var(--blue); }
 .tag-webinar    { background: rgba(244,114,182,0.2); color: var(--pink); }
 .tag-other      { background: rgba(139,143,168,0.2); color: var(--text-muted); }
+
+.card-category-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid;
+}
+.cat-ai      { background: transparent; color: var(--accent-light); border-color: var(--accent); }
+.cat-product { background: transparent; color: var(--green); border-color: var(--green); }
 
 .card-title {
   font-size: 15px;
@@ -309,7 +326,9 @@ main { min-width: 0; }
   gap: 16px;
   padding: 14px 18px;
 }
-.events-container.list .card-type-tag { margin-bottom: 0; min-width: 90px; text-align: center; }
+.events-container.list .card-tags { margin-bottom: 0; }
+.events-container.list .card-type-tag { min-width: 90px; text-align: center; }
+.events-container.list .card-category-tag { min-width: 60px; text-align: center; }
 .events-container.list .card-title { margin-bottom: 0; font-size: 14px; flex: 1; }
 .events-container.list .card-meta { flex-direction: row; gap: 16px; margin-bottom: 0; }
 .events-container.list .card-description { display: none; }

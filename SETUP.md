@@ -1,4 +1,4 @@
-# AI Events India — Setup Guide
+# Tech Events India — Setup Guide
 
 ## Step 1: Get your API keys (all free tiers)
 

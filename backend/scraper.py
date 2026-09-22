@@ -15,7 +15,9 @@ log = logging.getLogger(__name__)
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 
-SEARCH_QUERIES = [
+# Domain-specific query sets. Kept within Tavily's free 1000-searches/month
+# budget (~33/day): AI (20/day) + Product (13/day) = 33/day.
+AI_QUERIES = [
     "AI conference India 2026",
     "artificial intelligence summit India 2026",
     "machine learning conference India 2026",
@@ -39,12 +41,43 @@ SEARCH_QUERIES = [
     "NASSCOM Hyderabad AI meetup 2026",
 ]
 
-EXTRACTION_PROMPT = """You are extracting structured AI event information from web search results.
+PRODUCT_QUERIES = [
+    "product management conference India 2026",
+    "product management summit India 2026",
+    "product management meetup India 2026",
+    "product management workshop India 2026",
+    "product led growth conference India 2026",
+    "ProductTank India 2026",
+    "product management hackathon India 2026",
+    "product strategy summit India 2026",
+    "product management community event India 2026",
+    # Hyderabad-focused queries
+    "product management meetup Hyderabad 2026",
+    "product management conference Hyderabad 2026",
+    "ProductTank Hyderabad 2026",
+    "product management summit Hyderabad Telangana 2026",
+]
+
+# category -> (queries, human label for the extraction prompt, topics to match)
+CATEGORIES = {
+    "ai": {
+        "queries": AI_QUERIES,
+        "label": "AI/ML/Data Science",
+        "topics": "AI, ML, Data Science, GenAI, LLM, NLP, Computer Vision, Robotics",
+    },
+    "product": {
+        "queries": PRODUCT_QUERIES,
+        "label": "Product Management",
+        "topics": "Product Management, Product Development, Product Strategy, Product Execution, Product-Led Growth, UX/Product Design",
+    },
+}
+
+EXTRACTION_PROMPT = """You are extracting structured {label} event information from web search results.
 
 Search results:
 {results}
 
-Extract all distinct AI/ML/Data Science events happening in India. For each event return a JSON array.
+Extract all distinct {label} events happening in India. For each event return a JSON array.
 Each item must have these fields (use null if unknown):
 - name: full event name (string)
 - event_type: one of "conference", "meetup", "workshop", "hackathon", "summit", "webinar", "other"
@@ -61,7 +94,7 @@ Each item must have these fields (use null if unknown):
 
 Rules:
 - Only include events IN INDIA
-- Only include events related to AI, ML, Data Science, GenAI, LLM, NLP, Computer Vision, Robotics
+- Only include events related to {topics}
 - Skip past events (before today: {today})
 - If you can't confirm it's in India, skip it
 - For "url", prefer the event's own official site/registration page. If a search result is a news article, blog post, or social media post *about* the event rather than the event's own page, only use that link if no official site appears anywhere in the results — never prefer a news/social link over an official one when both are present.
@@ -98,7 +131,7 @@ def _call_groq(prompt: str, groq: Groq) -> str:
     return response.choices[0].message.content
 
 
-def extract_events(results: list[dict], query: str, gemini: genai.Client, groq: Groq) -> list[Event]:
+def extract_events(results: list[dict], query: str, category: str, gemini: genai.Client, groq: Groq) -> list[Event]:
     if not results:
         return []
 
@@ -107,9 +140,12 @@ def extract_events(results: list[dict], query: str, gemini: genai.Client, groq: 
         for r in results
     )
 
+    config = CATEGORIES[category]
     prompt = EXTRACTION_PROMPT.format(
         results=results_text,
         today=datetime.now().date().isoformat(),
+        label=config["label"],
+        topics=config["topics"],
     )
 
     try:
@@ -149,6 +185,7 @@ def extract_events(results: list[dict], query: str, gemini: genai.Client, groq: 
                     is_free=item.get("is_free"),
                     registration_url=item.get("registration_url"),
                     source_query=query,
+                    category=category,
                 )
                 if event.name and event.url:
                     events.append(event)
@@ -164,30 +201,31 @@ def extract_events(results: list[dict], query: str, gemini: genai.Client, groq: 
         return []
 
 
-def run_scrape(queries: list[str] = None) -> ScrapeResult:
+def run_scrape(categories: list[str] = None) -> ScrapeResult:
     tavily = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
     gemini = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     groq = Groq(api_key=os.environ["GROQ_API_KEY"])
     db = get_client()
 
-    queries = queries or SEARCH_QUERIES
+    categories = categories or list(CATEGORIES.keys())
     all_events: list[Event] = []
     new_count = 0
     dup_count = 0
 
-    for query in queries:
-        log.info(f"Searching: {query}")
-        results = search_events(query, tavily)
-        events = extract_events(results, query, gemini, groq)
-        log.info(f"  Found {len(events)} events from '{query}'")
+    for category in categories:
+        for query in CATEGORIES[category]["queries"]:
+            log.info(f"[{category}] Searching: {query}")
+            results = search_events(query, tavily)
+            events = extract_events(results, query, category, gemini, groq)
+            log.info(f"  Found {len(events)} events from '{query}'")
 
-        for event in events:
-            is_new, _ = upsert_event(db, event)
-            if is_new:
-                new_count += 1
-                all_events.append(event)
-            else:
-                dup_count += 1
+            for event in events:
+                is_new, _ = upsert_event(db, event)
+                if is_new:
+                    new_count += 1
+                    all_events.append(event)
+                else:
+                    dup_count += 1
 
     log.info(f"Scrape complete — {new_count} new, {dup_count} duplicates skipped")
 

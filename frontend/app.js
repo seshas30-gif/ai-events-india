@@ -5,7 +5,7 @@ const API_BASE = window.location.hostname === "localhost" || window.location.hos
 const state = {
   events: [],
   filtered: [],
-  filters: { status: "upcoming", event_type: "", city: "" },
+  filters: { status: "upcoming", event_type: "", city: "", category: "" },
   searchQuery: "",
   view: "grid",
   showNewOnly: false,
@@ -28,6 +28,7 @@ async function loadEvents() {
     if (state.filters.status)     params.set("status", state.filters.status);
     if (state.filters.event_type) params.set("event_type", state.filters.event_type);
     if (state.filters.city)       params.set("city", state.filters.city);
+    if (state.filters.category)   params.set("category", state.filters.category);
     if (state.showNewOnly)        params.set("is_new", "true");
     params.set("limit", "200");
 
@@ -170,13 +171,17 @@ function render() {
 
 function renderCard(event) {
   const typeTag  = event.event_type || "other";
+  const category = event.category === "product" ? "product" : "ai";
   const dateStr  = formatDateRange(event.start_date, event.end_date);
   const location = [event.city, event.state].filter(Boolean).join(", ") || "India";
   const isNew    = event.is_new;
 
   return `
     <div class="event-card${isNew ? " is-new" : ""}">
-      <span class="card-type-tag tag-${typeTag}">${typeTag}</span>
+      <div class="card-tags">
+        <span class="card-type-tag tag-${typeTag}">${typeTag}</span>
+        <span class="card-category-tag cat-${category}">${category === "product" ? "Product" : "AI"}</span>
+      </div>
       <div class="card-title">${escHtml(event.name)}</div>
       <div class="card-meta">
         ${dateStr ? `<div class="card-meta-row">📅 ${dateStr}</div>` : ""}

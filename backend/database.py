@@ -37,6 +37,7 @@ def get_events(
     status: Optional[str] = "upcoming",
     city: Optional[str] = None,
     event_type: Optional[str] = None,
+    category: Optional[str] = None,
     is_new: Optional[bool] = None,
     limit: int = 100,
 ) -> list[dict]:
@@ -48,6 +49,8 @@ def get_events(
         query = query.ilike("city", f"%{city}%")
     if event_type:
         query = query.eq("event_type", event_type)
+    if category:
+        query = query.eq("category", category)
     if is_new is not None:
         query = query.eq("is_new", is_new)
 

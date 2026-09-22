@@ -6,6 +6,7 @@ from datetime import date, datetime
 class Event(BaseModel):
     id: Optional[str] = None
     name: str
+    category: Optional[str] = "ai"
     event_type: Optional[str] = None
     start_date: Optional[date] = None
     end_date: Optional[date] = None
@@ -26,6 +27,7 @@ class Event(BaseModel):
 class EventFilters(BaseModel):
     city: Optional[str] = None
     event_type: Optional[str] = None
+    category: Optional[str] = None
     status: Optional[str] = "upcoming"
     is_new: Optional[bool] = None
 
