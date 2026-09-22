@@ -3,12 +3,17 @@ import json
 import logging
 from datetime import datetime
 from tavily import TavilyClient
-from anthropic import Anthropic
+from google import genai
+from groq import Groq
 from models import Event, ScrapeResult
 from database import get_client, upsert_event
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
+
+# Overridable via env in case a model id gets deprecated/renamed.
+GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
+GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 
 SEARCH_QUERIES = [
     "AI conference India 2026",
@@ -78,7 +83,21 @@ def search_events(query: str, tavily: TavilyClient) -> list[dict]:
         return []
 
 
-def extract_events(results: list[dict], query: str, claude: Anthropic) -> list[Event]:
+def _call_gemini(prompt: str, gemini: genai.Client) -> str:
+    response = gemini.models.generate_content(model=GEMINI_MODEL, contents=prompt)
+    return response.text
+
+
+def _call_groq(prompt: str, groq: Groq) -> str:
+    response = groq.chat.completions.create(
+        model=GROQ_MODEL,
+        max_tokens=4096,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return response.choices[0].message.content
+
+
+def extract_events(results: list[dict], query: str, gemini: genai.Client, groq: Groq) -> list[Event]:
     if not results:
         return []
 
@@ -93,12 +112,17 @@ def extract_events(results: list[dict], query: str, claude: Anthropic) -> list[E
     )
 
     try:
-        response = claude.messages.create(
-            model="claude-haiku-4-5-20251001",
-            max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
-        )
-        raw = response.content[0].text.strip()
+        raw = _call_gemini(prompt, gemini)
+    except Exception as e:
+        log.warning(f"Gemini extraction failed for '{query}' ({e}); falling back to Groq")
+        try:
+            raw = _call_groq(prompt, groq)
+        except Exception as e2:
+            log.error(f"Groq fallback also failed for '{query}': {e2}")
+            return []
+
+    try:
+        raw = raw.strip()
 
         # Strip markdown code block if present
         if raw.startswith("```"):
@@ -132,16 +156,17 @@ def extract_events(results: list[dict], query: str, claude: Anthropic) -> list[E
         return events
 
     except json.JSONDecodeError as e:
-        log.error(f"Claude returned invalid JSON for query '{query}': {e}")
+        log.error(f"Model returned invalid JSON for query '{query}': {e}")
         return []
     except Exception as e:
-        log.error(f"Claude extraction failed for query '{query}': {e}")
+        log.error(f"Event parsing failed for query '{query}': {e}")
         return []
 
 
 def run_scrape(queries: list[str] = None) -> ScrapeResult:
     tavily = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
-    claude = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+    gemini = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
+    groq = Groq(api_key=os.environ["GROQ_API_KEY"])
     db = get_client()
 
     queries = queries or SEARCH_QUERIES
@@ -152,7 +177,7 @@ def run_scrape(queries: list[str] = None) -> ScrapeResult:
     for query in queries:
         log.info(f"Searching: {query}")
         results = search_events(query, tavily)
-        events = extract_events(results, query, claude)
+        events = extract_events(results, query, gemini, groq)
         log.info(f"  Found {len(events)} events from '{query}'")
 
         for event in events:

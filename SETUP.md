@@ -5,8 +5,11 @@
 | Service | Sign up | What you get |
 |---|---|---|
 | [Tavily](https://tavily.com) | Free | 1000 searches/month |
-| [Anthropic](https://console.anthropic.com) | Pay-as-you-go (~$0.25 per full scrape run) | Claude Haiku for extraction |
+| [Google AI Studio](https://aistudio.google.com/apikey) | Free | Gemini 2.5 Flash-Lite — primary extraction model |
+| [Groq](https://console.groq.com/keys) | Free | Fallback extraction model, used automatically if Gemini's daily quota runs out |
 | [Supabase](https://supabase.com) | Free | Postgres database |
+
+Extraction is 100% free tier: ~20 search queries/day is well under both Gemini's (1,000 req/day) and Groq's (1,000 req/day) free limits.
 
 ## Step 2: Set up Supabase
 
@@ -54,7 +57,8 @@ Then open `frontend/index.html` in your browser (or use Live Server in VS Code).
 ### Scheduled scraping → GitHub Actions
 1. In your GitHub repo → Settings → Secrets → Add:
    - `TAVILY_API_KEY`
-   - `ANTHROPIC_API_KEY`
+   - `GEMINI_API_KEY`
+   - `GROQ_API_KEY`
    - `SUPABASE_URL`
    - `SUPABASE_SERVICE_KEY`
 2. The scraper runs automatically every day at 7 AM IST
