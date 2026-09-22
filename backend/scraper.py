@@ -23,6 +23,15 @@ SEARCH_QUERIES = [
     "Analytics India Magazine conference 2026",
     "NLP conference India 2026",
     "computer vision conference India 2026",
+    # Hyderabad-focused queries
+    "AI conference Hyderabad 2026",
+    "machine learning meetup Hyderabad 2026",
+    "data science summit Hyderabad 2026",
+    "GenAI workshop Hyderabad 2026",
+    "tech conference Hyderabad HITEC City 2026",
+    "T-Hub AI events Hyderabad 2026",
+    "AI summit Hyderabad Telangana 2026",
+    "NASSCOM Hyderabad AI meetup 2026",
 ]
 
 EXTRACTION_PROMPT = """You are extracting structured AI event information from web search results.
