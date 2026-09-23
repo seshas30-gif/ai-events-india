@@ -3,6 +3,7 @@ import json
 import logging
 from datetime import datetime
 from tavily import TavilyClient
+from exa_py import Exa
 from google import genai
 from groq import Groq
 from models import Event, ScrapeResult
@@ -79,17 +80,23 @@ STARTUP_QUERIES = [
     "founder meetup Hyderabad 2026",
 ]
 
-# category -> (queries, human label for the extraction prompt, topics to match)
+# category -> (queries, human label for the extraction prompt, topics to match,
+# which search provider to use). AI/Product stay on Tavily (established,
+# already dialed in); Tech/Startup run on Exa instead of adding to Tavily's
+# already-over-budget usage — Exa's free tier (~$10/month credits, ~1400
+# searches) comfortably covers their much smaller query count.
 CATEGORIES = {
     "ai": {
         "queries": AI_QUERIES,
         "label": "AI/ML/Data Science",
         "topics": "AI, ML, Data Science, GenAI, LLM, NLP, Computer Vision, Robotics",
+        "search_provider": "tavily",
     },
     "product": {
         "queries": PRODUCT_QUERIES,
         "label": "Product Management",
         "topics": "Product Management, Product Development, Product Strategy, Product Execution, Product-Led Growth, UX/Product Design",
+        "search_provider": "tavily",
     },
     "tech": {
         "queries": TECH_QUERIES,
@@ -101,6 +108,7 @@ CATEGORIES = {
             "events and NOT primarily Product Management events (those are already covered elsewhere, "
             "skip them here to avoid duplicates)"
         ),
+        "search_provider": "exa",
     },
     "startup": {
         "queries": STARTUP_QUERIES,
@@ -111,6 +119,7 @@ CATEGORIES = {
             "— but NOT primarily AI/ML, Product Management, or general Tech events (those are already "
             "covered elsewhere, skip them here to avoid duplicates)"
         ),
+        "search_provider": "exa",
     },
 }
 
@@ -156,6 +165,20 @@ def search_events(query: str, tavily: TavilyClient) -> list[dict]:
         return response.get("results", [])
     except Exception as e:
         log.error(f"Tavily search failed for '{query}': {e}")
+        return []
+
+
+def search_events_exa(query: str, exa: Exa) -> list[dict]:
+    """Same shape as search_events() (title/url/content dicts) so
+    extract_events() doesn't need to know which provider ran the search."""
+    try:
+        response = exa.search(query, num_results=10, contents={"text": True})
+        return [
+            {"title": r.title or "", "url": r.url or "", "content": (r.text or "")[:800]}
+            for r in response.results
+        ]
+    except Exception as e:
+        log.error(f"Exa search failed for '{query}': {e}")
         return []
 
 
@@ -245,6 +268,7 @@ def extract_events(results: list[dict], query: str, category: str, gemini: genai
 
 def run_scrape(categories: list[str] = None) -> ScrapeResult:
     tavily = TavilyClient(api_key=os.environ["TAVILY_API_KEY"])
+    exa = Exa(api_key=os.environ["EXA_API_KEY"])
     gemini = genai.Client(api_key=os.environ["GEMINI_API_KEY"])
     groq = Groq(api_key=os.environ["GROQ_API_KEY"])
     db = get_client()
@@ -255,9 +279,10 @@ def run_scrape(categories: list[str] = None) -> ScrapeResult:
     dup_count = 0
 
     for category in categories:
+        provider = CATEGORIES[category]["search_provider"]
         for query in CATEGORIES[category]["queries"]:
-            log.info(f"[{category}] Searching: {query}")
-            results = search_events(query, tavily)
+            log.info(f"[{category}/{provider}] Searching: {query}")
+            results = search_events_exa(query, exa) if provider == "exa" else search_events(query, tavily)
             events = extract_events(results, query, category, gemini, groq)
             log.info(f"  Found {len(events)} events from '{query}'")
 

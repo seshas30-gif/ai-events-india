@@ -4,12 +4,13 @@
 
 | Service | Sign up | What you get |
 |---|---|---|
-| [Tavily](https://tavily.com) | Free | 1000 searches/month |
-| [Google AI Studio](https://aistudio.google.com/apikey) | Free | Gemini 2.5 Flash-Lite — primary extraction model |
+| [Tavily](https://tavily.com) | Free | 1000 searches/month — used for the AI + Product categories |
+| [Exa](https://exa.ai) | Free | ~$10/month in free credits (~1400 searches) — used for the Tech + Startup categories |
+| [Google AI Studio](https://aistudio.google.com/apikey) | Free | Gemini (primary extraction model — see `GEMINI_MODEL` in `scraper.py` for the current model id) |
 | [Groq](https://console.groq.com/keys) | Free | Fallback extraction model, used automatically if Gemini's daily quota runs out |
 | [Supabase](https://supabase.com) | Free | Postgres database |
 
-Extraction is 100% free tier: ~20 search queries/day is well under both Gemini's (1,000 req/day) and Groq's (1,000 req/day) free limits.
+Search usage is ~41 queries/day across Tavily (AI + Product, ~35/day) and Exa (Tech + Startup, ~6/day). Tavily's share runs slightly over its 1000/month free tier (~$0.40/month in pay-as-you-go overage); Exa's share stays comfortably within its free monthly credits. Extraction (Gemini/Groq) stays well under both providers' free daily limits regardless.
 
 ## Step 2: Set up Supabase
 
@@ -57,6 +58,7 @@ Then open `frontend/index.html` in your browser (or use Live Server in VS Code).
 ### Scheduled scraping → GitHub Actions
 1. In your GitHub repo → Settings → Secrets → Add:
    - `TAVILY_API_KEY`
+   - `EXA_API_KEY`
    - `GEMINI_API_KEY`
    - `GROQ_API_KEY`
    - `SUPABASE_URL`
@@ -69,7 +71,7 @@ Then open `frontend/index.html` in your browser (or use Live Server in VS Code).
 ```
 ├── backend/
 │   ├── main.py          # FastAPI app (API endpoints)
-│   ├── scraper.py       # Tavily search + Claude event extraction
+│   ├── scraper.py       # Tavily/Exa search + Gemini/Groq event extraction
 │   ├── database.py      # Supabase client + queries
 │   ├── models.py        # Pydantic data models
 │   ├── schema.sql       # Run once in Supabase SQL editor
