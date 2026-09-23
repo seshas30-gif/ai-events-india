@@ -32,6 +32,16 @@ def upsert_event(client: Client, event: Event) -> tuple[bool, str]:
     return True, result.data[0]["id"]
 
 
+# Cities the scraper/LLM extraction inconsistently names differently across
+# runs. Filtering by one alias should also match events tagged with the other.
+CITY_ALIASES = {
+    "bangalore": ["Bangalore", "Bengaluru"],
+    "bengaluru": ["Bangalore", "Bengaluru"],
+    "delhi": ["Delhi", "New Delhi", "Delhi NCR", "Noida", "Gurgaon", "Gurugram"],
+    "delhi ncr": ["Delhi", "New Delhi", "Delhi NCR", "Noida", "Gurgaon", "Gurugram"],
+}
+
+
 def get_events(
     client: Client,
     status: Optional[str] = "upcoming",
@@ -46,7 +56,8 @@ def get_events(
     if status:
         query = query.eq("status", status)
     if city:
-        query = query.ilike("city", f"%{city}%")
+        aliases = CITY_ALIASES.get(city.lower(), [city])
+        query = query.or_(",".join(f"city.ilike.%{alias}%" for alias in aliases))
     if event_type:
         query = query.eq("event_type", event_type)
     if category:

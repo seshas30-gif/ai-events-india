@@ -4,126 +4,162 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Tech Events India</title>
+  <meta name="description" content="A daily radar for AI and Product events across India."/>
   <link rel="stylesheet" href="styles.css" />
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@400;600;700&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <!-- Header -->
-  <header>
-    <div class="header-inner">
-      <div class="header-left">
-        <span class="logo">⚡ Tech Events India</span>
-        <span class="tagline">Your radar for every AI &amp; Product event across India</span>
-      </div>
-      <div class="header-right">
-        <span id="new-badge" class="new-badge hidden">0 new</span>
-        <button id="refresh-btn" class="btn-primary" onclick="triggerScrape()">
-          <span id="refresh-label">Refresh Events</span>
-        </button>
+  <canvas class="ambient" id="ambient-canvas" aria-hidden="true"></canvas>
+
+  <nav class="nav">
+    <a href="#top" class="nav-brand"><span class="nav-brand-dot"></span>Tech Events India</a>
+    <div class="nav-links">
+      <a href="#top">Overview</a>
+      <a href="#how-anchor">How it works</a>
+      <a href="#browse-anchor">Events</a>
+    </div>
+    <div class="nav-utility">
+      <span id="new-badge" class="new-pill hidden">0 new</span>
+      <button type="button" class="btn-refresh" id="refresh-btn"><span id="refresh-label">⟳ Refresh signal</span></button>
+    </div>
+  </nav>
+
+  <div class="hero" id="top">
+    <div class="hero-text">
+      <div class="eyebrow" id="hero-eyebrow">Live signal · scanning India</div>
+      <h1 class="title">Your radar for India's tech events.</h1>
+      <p class="sub">AI and Product events, surfaced automatically — no more digging through NASSCOM mailers, X threads and WhatsApp forwards to find out what you missed.</p>
+      <div class="cta-row">
+        <a href="#browse-anchor" class="cta-primary">Browse events ↓</a>
+        <a href="#how-anchor" class="cta-ghost">See how it works</a>
       </div>
     </div>
-  </header>
 
-  <div class="layout">
-    <!-- Sidebar Filters -->
-    <aside class="sidebar">
-      <div class="sidebar-section">
-        <h3>Category</h3>
-        <div class="filter-group" id="category-filters">
-          <label class="filter-chip active" data-filter="category" data-value="">All</label>
-          <label class="filter-chip" data-filter="category" data-value="ai">AI</label>
-          <label class="filter-chip" data-filter="category" data-value="product">Product</label>
-        </div>
+    <div class="mappanel">
+      <span class="mappanel-head">● LIVE MAP</span>
+      <div class="map-wrap" aria-hidden="true">
+        <svg id="map-svg" viewBox="0 0 560 340" preserveAspectRatio="xMidYMid meet">
+          <g id="map-nodes"></g>
+        </svg>
       </div>
+      <div class="sweep" aria-hidden="true"></div>
+    </div>
+  </div>
 
-      <div class="sidebar-section">
-        <h3>Status</h3>
-        <div class="filter-group" id="status-filters">
-          <label class="filter-chip active" data-filter="status" data-value="upcoming">
-            <input type="radio" name="status" value="upcoming" checked hidden /> Upcoming
-          </label>
-          <label class="filter-chip" data-filter="status" data-value="ongoing">
-            <input type="radio" name="status" value="ongoing" hidden /> Ongoing
-          </label>
-          <label class="filter-chip" data-filter="status" data-value="past">
-            <input type="radio" name="status" value="past" hidden /> Past
-          </label>
-          <label class="filter-chip" data-filter="status" data-value="">
-            <input type="radio" name="status" value="" hidden /> All
-          </label>
-        </div>
+  <section class="about">
+    <div class="eyebrow-sm">Why this exists</div>
+    <h2 class="heading">One radar instead of five group chats.</h2>
+    <p>AI and Product events in India don't live in one place — they're scattered across <b>NASSCOM mailers</b>, conference-organizer newsletters, <b>X threads</b>, and <b>WhatsApp forwards</b>, usually surfacing after registration's already tight. This page checks the usual places every morning, pulls out what's actually happening, and drops it here — so finding out means scrolling once, not five different apps.</p>
+  </section>
+
+  <section class="how" id="how-anchor">
+    <div class="how-head">
+      <div class="eyebrow-sm center">How it works</div>
+      <h2 class="heading">The actual pipeline behind the signal.</h2>
+      <p>No manual curation — a script does this every day, unattended.</p>
+    </div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h3>Search</h3>
+        <p>Tavily runs ~35 targeted searches daily — AI and Product topics, by city, keyword, and format.</p>
       </div>
-
-      <div class="sidebar-section">
-        <h3>Event Type</h3>
-        <div class="filter-group" id="type-filters">
-          <label class="filter-chip active" data-filter="event_type" data-value="">All</label>
-          <label class="filter-chip" data-filter="event_type" data-value="conference">Conference</label>
-          <label class="filter-chip" data-filter="event_type" data-value="summit">Summit</label>
-          <label class="filter-chip" data-filter="event_type" data-value="meetup">Meetup</label>
-          <label class="filter-chip" data-filter="event_type" data-value="workshop">Workshop</label>
-          <label class="filter-chip" data-filter="event_type" data-value="hackathon">Hackathon</label>
-          <label class="filter-chip" data-filter="event_type" data-value="webinar">Webinar</label>
-        </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h3>Extract</h3>
+        <p>Gemini reads the results and pulls structured events — name, date, city, category. Groq steps in automatically if Gemini's quota runs dry.</p>
       </div>
-
-      <div class="sidebar-section">
-        <h3>City</h3>
-        <div class="filter-group" id="city-filters">
-          <label class="filter-chip active" data-filter="city" data-value="">All India</label>
-          <label class="filter-chip" data-filter="city" data-value="Bangalore">Bangalore</label>
-          <label class="filter-chip" data-filter="city" data-value="Mumbai">Mumbai</label>
-          <label class="filter-chip" data-filter="city" data-value="Delhi">Delhi</label>
-          <label class="filter-chip" data-filter="city" data-value="Hyderabad">Hyderabad</label>
-          <label class="filter-chip" data-filter="city" data-value="Chennai">Chennai</label>
-          <label class="filter-chip" data-filter="city" data-value="Pune">Pune</label>
-          <label class="filter-chip" data-filter="city" data-value="Kolkata">Kolkata</label>
-        </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h3>Track</h3>
+        <p>New events land in the database, duplicates get skipped by URL, and statuses refresh daily at 07:00 IST via GitHub Actions.</p>
       </div>
+    </div>
+  </section>
 
-      <div class="sidebar-section">
-        <button class="btn-ghost full-width" id="show-new-btn" onclick="showNewOnly()">
-          Show New Only
-        </button>
-        <button class="btn-ghost full-width" id="mark-seen-btn" onclick="markAllSeen()" style="margin-top:8px">
-          Mark All Seen
-        </button>
-      </div>
-    </aside>
+  <section class="browse" id="browse-anchor">
+    <div class="browse-head">
+      <div class="eyebrow-sm">Browse</div>
+      <h2 class="heading">All tracked events.</h2>
+    </div>
 
-    <!-- Main Content -->
-    <main>
-      <div class="main-header">
-        <div class="search-bar">
-          <span class="search-icon">🔍</span>
-          <input type="text" id="search-input" placeholder="Search events, cities, organizers..." oninput="handleSearch()" />
-        </div>
-        <div class="view-controls">
-          <span id="event-count" class="event-count">Loading...</span>
-          <button class="view-btn active" id="grid-btn" onclick="setView('grid')">▦ Grid</button>
-          <button class="view-btn" id="list-btn" onclick="setView('list')">☰ List</button>
-        </div>
-      </div>
-
-      <!-- Stats Bar -->
-      <div class="stats-bar" id="stats-bar">
+    <div class="toolrow">
+      <label class="search">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="search-input" placeholder="Search events, cities, organizers…" autocomplete="off" oninput="handleSearch()"/>
+      </label>
+      <div class="stats">
         <div class="stat"><span class="stat-num" id="stat-total">—</span><span class="stat-label">Total</span></div>
         <div class="stat"><span class="stat-num" id="stat-new">—</span><span class="stat-label">New</span></div>
         <div class="stat"><span class="stat-num" id="stat-upcoming">—</span><span class="stat-label">Upcoming</span></div>
       </div>
+      <div class="quick-actions">
+        <button type="button" class="btn-ghost" id="show-new-btn" onclick="showNewOnly()">Show New Only</button>
+        <button type="button" class="btn-ghost" id="mark-seen-btn" onclick="markAllSeen()">Mark All Seen</button>
+      </div>
+    </div>
 
-      <!-- Events Grid -->
-      <div class="events-container grid" id="events-container">
-        <div class="loading-state">
-          <div class="spinner"></div>
-          <p>Fetching events...</p>
+    <div class="filters">
+      <div class="filtergroups">
+        <div class="pillgroup" id="category-filters">
+          <button class="pill active" data-filter="category" data-value="">All</button>
+          <button class="pill" data-filter="category" data-value="ai">AI</button>
+          <button class="pill" data-filter="category" data-value="product">Product</button>
+        </div>
+        <div class="pillgroup" id="status-filters">
+          <button class="pill active" data-filter="status" data-value="upcoming">Upcoming</button>
+          <button class="pill" data-filter="status" data-value="ongoing">Ongoing</button>
+          <button class="pill" data-filter="status" data-value="past">Past</button>
+          <button class="pill" data-filter="status" data-value="">All</button>
+        </div>
+        <div class="pillgroup" id="type-filters">
+          <button class="pill active" data-filter="event_type" data-value="">All types</button>
+          <button class="pill" data-filter="event_type" data-value="conference">Conference</button>
+          <button class="pill" data-filter="event_type" data-value="summit">Summit</button>
+          <button class="pill" data-filter="event_type" data-value="meetup">Meetup</button>
+          <button class="pill" data-filter="event_type" data-value="workshop">Workshop</button>
+          <button class="pill" data-filter="event_type" data-value="hackathon">Hackathon</button>
+          <button class="pill" data-filter="event_type" data-value="webinar">Webinar</button>
+        </div>
+        <div class="pillgroup" id="city-filters">
+          <button class="pill active" data-filter="city" data-value="">All cities</button>
         </div>
       </div>
-    </main>
-  </div>
+      <div class="viewtoggle" role="group" aria-label="Layout">
+        <button type="button" class="viewbtn active" data-view="grid" onclick="setView('grid')" aria-label="Grid view">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+        </button>
+        <button type="button" class="viewbtn" data-view="list" onclick="setView('list')" aria-label="List view">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="4" y1="6" x2="20" y2="6"/><line x1="4" y1="12" x2="20" y2="12"/><line x1="4" y1="18" x2="20" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
 
-  <!-- Toast Notification -->
+    <div class="events-container grid" id="events-container">
+      <div class="loading-state">
+        <div class="spinner"></div>
+        <p>Fetching events...</p>
+      </div>
+    </div>
+  </section>
+
+  <footer class="footer">
+    <div>
+      <div class="footer-brand">⚡ Tech Events India</div>
+      <p class="footer-note">A daily radar for AI and Product events across India. Built to replace the group-chat scavenger hunt.</p>
+    </div>
+    <div class="footer-stack">
+      <div class="footer-stack-label">Runs on</div>
+      <div class="footer-pills">
+        <span class="footer-pill">Tavily</span>
+        <span class="footer-pill">Gemini</span>
+        <span class="footer-pill">Groq</span>
+        <span class="footer-pill">Supabase</span>
+      </div>
+    </div>
+  </footer>
+
   <div id="toast" class="toast hidden"></div>
 
   <script src="app.js"></script>

@@ -39,6 +39,11 @@ AI_QUERIES = [
     "T-Hub AI events Hyderabad 2026",
     "AI summit Hyderabad Telangana 2026",
     "NASSCOM Hyderabad AI meetup 2026",
+    # Broader "builder village"-style events that don't badge themselves as
+    # strict AI conferences but run real frontier-tech/AI programming (e.g.
+    # Edge City India) — narrow AI-only queries miss these entirely.
+    "frontier tech popup village India 2026",
+    "builder residency India 2026",
 ]
 
 PRODUCT_QUERIES = [

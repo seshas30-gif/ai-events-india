@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-CITIES = ["Bangalore", "Mumbai", "Delhi", "Hyderabad", "Chennai", "Pune", "Kolkata", "Ahmedabad", "Noida", "Gurgaon"]
+CITIES = ["Bengaluru", "Hyderabad", "Delhi NCR", "Mumbai", "Kolkata", "Goa", "Pune", "Chennai", "Ahmedabad", "Kharagpur"]
 EVENT_TYPES = ["conference", "meetup", "workshop", "hackathon", "summit", "webinar", "other"]
 CATEGORIES = ["ai", "product"]
 
