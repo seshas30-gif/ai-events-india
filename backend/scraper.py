@@ -75,6 +75,17 @@ TECH_QUERIES = [
     "developer meetup Bangalore 2026",
 ]
 
+# Same deliberate scoping as TECH_QUERIES: Hyderabad + Bangalore only, kept
+# to 6 queries to keep the cumulative Tavily overage small.
+STARTUP_QUERIES = [
+    "startup summit Hyderabad 2026",
+    "startup summit Bangalore 2026",
+    "startup pitch event Hyderabad 2026",
+    "startup pitch event Bangalore 2026",
+    "founder meetup Hyderabad 2026",
+    "founder meetup Bangalore 2026",
+]
+
 # category -> (queries, human label for the extraction prompt, topics to match)
 CATEGORIES = {
     "ai": {
@@ -96,6 +107,16 @@ CATEGORIES = {
             "open source, or general hackathons/tech meetups — but NOT primarily AI/ML/Data Science "
             "events and NOT primarily Product Management events (those are already covered elsewhere, "
             "skip them here to avoid duplicates)"
+        ),
+    },
+    "startup": {
+        "queries": STARTUP_QUERIES,
+        "label": "Startup",
+        "topics": (
+            "startup funding announcements, pitch competitions/demo days, founder meetups, startup "
+            "summits, incubator/accelerator programs, venture capital/investor events, entrepreneurship "
+            "— but NOT primarily AI/ML, Product Management, or general Tech events (those are already "
+            "covered elsewhere, skip them here to avoid duplicates)"
         ),
     },
 }

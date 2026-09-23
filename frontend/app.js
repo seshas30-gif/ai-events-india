@@ -298,7 +298,7 @@ function render() {
   container.innerHTML = state.filtered.map(e => renderCard(e)).join("");
 }
 
-const CATEGORY_LABELS = { ai: "AI", product: "Product", tech: "Tech" };
+const CATEGORY_LABELS = { ai: "AI", product: "Product", tech: "Tech", startup: "Startup" };
 
 function renderCard(event) {
   const typeTag  = event.event_type || "other";
