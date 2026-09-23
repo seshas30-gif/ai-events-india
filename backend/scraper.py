@@ -63,27 +63,20 @@ PRODUCT_QUERIES = [
     "product management summit Hyderabad Telangana 2026",
 ]
 
-# Deliberately scoped to Hyderabad + Bangalore only (not all-India) and kept
-# lean (6 queries) — this is on top of an already-over-free-tier AI+Product
-# budget, so it's sized to keep the overage small rather than maximize reach.
+# Trimmed to Hyderabad only (was Hyderabad + Bangalore) to cut the Tavily
+# overage further — this is on top of an already-over-free-tier AI+Product
+# budget.
 TECH_QUERIES = [
     "tech conference Hyderabad 2026",
-    "tech conference Bangalore 2026",
     "tech hackathon Hyderabad 2026",
-    "tech hackathon Bangalore 2026",
     "developer meetup Hyderabad 2026",
-    "developer meetup Bangalore 2026",
 ]
 
-# Same deliberate scoping as TECH_QUERIES: Hyderabad + Bangalore only, kept
-# to 6 queries to keep the cumulative Tavily overage small.
+# Same trimmed Hyderabad-only scoping as TECH_QUERIES.
 STARTUP_QUERIES = [
     "startup summit Hyderabad 2026",
-    "startup summit Bangalore 2026",
     "startup pitch event Hyderabad 2026",
-    "startup pitch event Bangalore 2026",
     "founder meetup Hyderabad 2026",
-    "founder meetup Bangalore 2026",
 ]
 
 # category -> (queries, human label for the extraction prompt, topics to match)
