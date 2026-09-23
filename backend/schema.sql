@@ -3,7 +3,7 @@
 CREATE TABLE IF NOT EXISTS events (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     name TEXT NOT NULL,
-    category TEXT DEFAULT 'ai' CHECK (category IN ('ai', 'product')),
+    category TEXT DEFAULT 'ai' CHECK (category IN ('ai', 'product', 'tech')),
     event_type TEXT CHECK (event_type IN ('conference', 'meetup', 'workshop', 'hackathon', 'summit', 'webinar', 'other')),
     start_date DATE,
     end_date DATE,
@@ -31,7 +31,13 @@ CREATE INDEX IF NOT EXISTS idx_events_is_new ON events(is_new);
 
 -- Migration for an already-existing table (fresh installs already get this
 -- column from the CREATE TABLE above — this is a no-op for those).
-ALTER TABLE events ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'ai' CHECK (category IN ('ai', 'product'));
+ALTER TABLE events ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'ai' CHECK (category IN ('ai', 'product', 'tech'));
+
+-- Migration to widen the category CHECK constraint on a table that already
+-- had it as ('ai', 'product') only (relies on Postgres's default unnamed-
+-- constraint naming convention: events_category_check).
+ALTER TABLE events DROP CONSTRAINT IF EXISTS events_category_check;
+ALTER TABLE events ADD CONSTRAINT events_category_check CHECK (category IN ('ai', 'product', 'tech'));
 
 -- Auto-update status based on dates.
 -- end_date is frequently NULL (single-day events) — comparisons against a NULL

@@ -21,7 +21,7 @@ app.add_middleware(
 
 CITIES = ["Bengaluru", "Hyderabad", "Delhi NCR", "Mumbai", "Kolkata", "Goa", "Pune", "Chennai", "Ahmedabad", "Kharagpur"]
 EVENT_TYPES = ["conference", "meetup", "workshop", "hackathon", "summit", "webinar", "other"]
-CATEGORIES = ["ai", "product"]
+CATEGORIES = ["ai", "product", "tech"]
 
 
 @app.get("/health")

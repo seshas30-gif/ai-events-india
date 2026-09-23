@@ -7,6 +7,7 @@
   --line: rgba(220,230,255,0.12);
   --radar: #7dd3c0;
   --product: #f5a962;
+  --tech: #b09aff;
   --glass: rgba(16,24,40,0.55);
   --radius: 14px;
   --radius-sm: 10px;
@@ -240,6 +241,7 @@ body {
 .card-tags { display: flex; align-items: center; gap: 7px; margin-bottom: 10px; flex-wrap: wrap; }
 .card-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--radar); flex-shrink: 0; }
 .event-card.product .card-dot { background: var(--product); }
+.event-card.tech .card-dot { background: var(--tech); }
 .card-cat { font-family: 'JetBrains Mono', monospace; font-size: 10px; letter-spacing: .1em; color: var(--ink-dim); text-transform: uppercase; }
 .card-new {
   font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700; letter-spacing: .06em;
@@ -258,6 +260,8 @@ body {
 .card-link.primary:hover { background: #93ddce; }
 .event-card.product .card-link.primary { background: var(--product); }
 .event-card.product .card-link.primary:hover { background: #f8bd82; }
+.event-card.tech .card-link.primary { background: var(--tech); }
+.event-card.tech .card-link.primary:hover { background: #c5b3ff; }
 .card-link.secondary { background: transparent; color: var(--ink-dim); border: 1px solid var(--line); }
 .card-link.secondary:hover { border-color: var(--radar); color: var(--ink); }
 

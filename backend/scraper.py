@@ -63,6 +63,18 @@ PRODUCT_QUERIES = [
     "product management summit Hyderabad Telangana 2026",
 ]
 
+# Deliberately scoped to Hyderabad + Bangalore only (not all-India) and kept
+# lean (6 queries) — this is on top of an already-over-free-tier AI+Product
+# budget, so it's sized to keep the overage small rather than maximize reach.
+TECH_QUERIES = [
+    "tech conference Hyderabad 2026",
+    "tech conference Bangalore 2026",
+    "tech hackathon Hyderabad 2026",
+    "tech hackathon Bangalore 2026",
+    "developer meetup Hyderabad 2026",
+    "developer meetup Bangalore 2026",
+]
+
 # category -> (queries, human label for the extraction prompt, topics to match)
 CATEGORIES = {
     "ai": {
@@ -74,6 +86,17 @@ CATEGORIES = {
         "queries": PRODUCT_QUERIES,
         "label": "Product Management",
         "topics": "Product Management, Product Development, Product Strategy, Product Execution, Product-Led Growth, UX/Product Design",
+    },
+    "tech": {
+        "queries": TECH_QUERIES,
+        "label": "general Tech",
+        "topics": (
+            "software engineering, web development, cybersecurity, cloud computing, DevOps, "
+            "blockchain/Web3, mobile development, gaming/game development, hardware, IoT, robotics, "
+            "open source, or general hackathons/tech meetups — but NOT primarily AI/ML/Data Science "
+            "events and NOT primarily Product Management events (those are already covered elsewhere, "
+            "skip them here to avoid duplicates)"
+        ),
     },
 }
 

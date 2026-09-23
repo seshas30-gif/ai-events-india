@@ -298,9 +298,11 @@ function render() {
   container.innerHTML = state.filtered.map(e => renderCard(e)).join("");
 }
 
+const CATEGORY_LABELS = { ai: "AI", product: "Product", tech: "Tech" };
+
 function renderCard(event) {
   const typeTag  = event.event_type || "other";
-  const category = event.category === "product" ? "product" : "ai";
+  const category = CATEGORY_LABELS[event.category] ? event.category : "ai";
   const dateStr  = formatDateRange(event.start_date, event.end_date);
   const location = [event.city, event.state].filter(Boolean).join(", ") || "City TBA";
   const isNew    = event.is_new;
@@ -309,7 +311,7 @@ function renderCard(event) {
     <div class="event-card${isNew ? " is-new" : ""} ${category}">
       <div class="card-tags">
         <span class="card-dot"></span>
-        <span class="card-cat">${category === "product" ? "Product" : "AI"} · ${typeTag}</span>
+        <span class="card-cat">${CATEGORY_LABELS[category]} · ${typeTag}</span>
         ${isNew ? `<span class="card-new">NEW</span>` : ""}
       </div>
       <div class="card-title">${escHtml(event.name)}</div>
