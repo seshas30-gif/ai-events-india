@@ -18,7 +18,13 @@ CREATE TABLE IF NOT EXISTS events (
     source_query TEXT,
     discovered_at TIMESTAMPTZ DEFAULT NOW(),
     is_new BOOLEAN DEFAULT TRUE,
-    status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'ongoing', 'past'))
+    status TEXT DEFAULT 'upcoming' CHECK (status IN ('upcoming', 'ongoing', 'past')),
+    -- P0 columns (deadlines / mode / price / quality score)
+    registration_deadline DATE,
+    cfp_deadline DATE,
+    mode TEXT CHECK (mode IN ('in_person', 'online', 'hybrid')),
+    price_inr INTEGER,
+    quality_score INTEGER
 );
 
 -- Index for fast filtering
@@ -38,6 +44,18 @@ ALTER TABLE events ADD COLUMN IF NOT EXISTS category TEXT DEFAULT 'ai' CHECK (ca
 -- naming convention: events_category_check).
 ALTER TABLE events DROP CONSTRAINT IF EXISTS events_category_check;
 ALTER TABLE events ADD CONSTRAINT events_category_check CHECK (category IN ('ai', 'product', 'tech', 'startup'));
+
+-- P0 migration for an already-existing table. Safe to re-run. The API also
+-- works before this runs: scores are computed on read (backend/scoring.py)
+-- and the scraper retries inserts without the new columns if they are absent.
+ALTER TABLE events ADD COLUMN IF NOT EXISTS registration_deadline DATE;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS cfp_deadline DATE;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS mode TEXT CHECK (mode IN ('in_person', 'online', 'hybrid'));
+ALTER TABLE events ADD COLUMN IF NOT EXISTS price_inr INTEGER;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS quality_score INTEGER;
+CREATE INDEX IF NOT EXISTS idx_events_mode ON events(mode);
+CREATE INDEX IF NOT EXISTS idx_events_quality_score ON events(quality_score);
+CREATE INDEX IF NOT EXISTS idx_events_reg_deadline ON events(registration_deadline);
 
 -- Auto-update status based on dates.
 -- end_date is frequently NULL (single-day events) — comparisons against a NULL

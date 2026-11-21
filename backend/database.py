@@ -4,6 +4,12 @@ from models import Event
 from typing import Optional
 from datetime import date
 
+from scoring import attach_scores, compute_stats, passes_view, sort_events
+
+# Columns added by the P0 migration in schema.sql. If the deployed DB has not
+# run it yet, inserts mentioning them fail — upsert retries without them.
+P0_COLUMNS = ("registration_deadline", "cfp_deadline", "mode", "price_inr", "quality_score")
+
 
 def get_client() -> Client:
     url = os.environ["SUPABASE_URL"]
@@ -24,11 +30,19 @@ def upsert_event(client: Client, event: Event) -> tuple[bool, str]:
                if v is not None and k not in ("id", "discovered_at", "is_new", "status")}
 
     # Serialize dates to ISO strings
-    for field in ("start_date", "end_date"):
+    for field in ("start_date", "end_date", "registration_deadline", "cfp_deadline"):
         if isinstance(payload.get(field), date):
             payload[field] = payload[field].isoformat()
 
-    result = client.table("events").insert(payload).execute()
+    try:
+        result = client.table("events").insert(payload).execute()
+    except Exception:
+        # Pre-migration DB (P0 columns absent) — retry without them so the
+        # daily scrape keeps working until schema.sql is applied.
+        stripped = {k: v for k, v in payload.items() if k not in P0_COLUMNS}
+        if stripped == payload:
+            raise
+        result = client.table("events").insert(stripped).execute()
     return True, result.data[0]["id"]
 
 
@@ -50,7 +64,15 @@ def get_events(
     category: Optional[str] = None,
     is_new: Optional[bool] = None,
     limit: int = 100,
+    mode: Optional[str] = None,
+    is_free: Optional[bool] = None,
+    view: Optional[str] = None,
+    sort: Optional[str] = "score",
 ) -> list[dict]:
+    # mode/is_free/view filtering and score-aware sorting happen in Python:
+    # quality_score is computed on read, and mode/price filters must keep
+    # working on rows written before the P0 columns existed. The SQL filters
+    # below only use long-standing columns, so a pre-migration DB still works.
     query = client.table("events").select("*").order("start_date", desc=False)
 
     if status:
@@ -65,8 +87,22 @@ def get_events(
     if is_new is not None:
         query = query.eq("is_new", is_new)
 
-    result = query.limit(limit).execute()
-    return result.data
+    # Fetch everything matching the SQL filters, then filter/sort/slice in
+    # Python (the dataset is hundreds of rows, not millions).
+    rows = query.limit(5000).execute().data
+
+    today = date.today()
+    attach_scores(rows)
+
+    if mode:
+        rows = [r for r in rows if r.get("mode") == mode]
+    if is_free:
+        rows = [r for r in rows if r.get("is_free") is True or r.get("price_inr") == 0]
+    if view:
+        rows = [r for r in rows if passes_view(r, view, today)]
+
+    rows = sort_events(rows, sort, today)
+    return rows[:limit]
 
 
 def mark_events_seen(client: Client) -> int:
@@ -81,11 +117,6 @@ def refresh_event_statuses(client: Client):
 
 
 def get_stats(client: Client) -> dict:
-    total = client.table("events").select("id", count="exact").execute()
-    new = client.table("events").select("id", count="exact").eq("is_new", True).execute()
-    upcoming = client.table("events").select("id", count="exact").eq("status", "upcoming").execute()
-    return {
-        "total": total.count,
-        "new": new.count,
-        "upcoming": upcoming.count,
-    }
+    # select("*") (not the P0 columns by name) so this works pre-migration.
+    rows = client.table("events").select("*").limit(5000).execute().data
+    return compute_stats(rows, date.today())

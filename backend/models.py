@@ -18,6 +18,13 @@ class Event(BaseModel):
     organizer: Optional[str] = None
     is_free: Optional[bool] = None
     registration_url: Optional[str] = None
+    # P0 fields — registration/CFP deadlines drive the countdown chips,
+    # mode + price are filters, quality_score is computed (see scoring.py).
+    registration_deadline: Optional[date] = None
+    cfp_deadline: Optional[date] = None
+    mode: Optional[str] = None  # in_person | online | hybrid
+    price_inr: Optional[int] = None  # lowest ticket price in INR; 0 = free
+    quality_score: Optional[int] = None
     source_query: Optional[str] = None
     discovered_at: Optional[datetime] = None
     is_new: Optional[bool] = True
@@ -30,6 +37,10 @@ class EventFilters(BaseModel):
     category: Optional[str] = None
     status: Optional[str] = "upcoming"
     is_new: Optional[bool] = None
+    mode: Optional[str] = None
+    is_free: Optional[bool] = None
+    view: Optional[str] = None  # open | week | new | closing
+    sort: Optional[str] = "score"  # score | closing | soonest | newest
 
 
 class ScrapeResult(BaseModel):

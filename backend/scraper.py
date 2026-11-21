@@ -8,6 +8,7 @@ from google import genai
 from groq import Groq
 from models import Event, ScrapeResult
 from database import get_client, upsert_event
+from scoring import compute_quality_score
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -142,6 +143,10 @@ Each item must have these fields (use null if unknown):
 - organizer: organizing body name (string or null)
 - is_free: true/false/null
 - registration_url: direct registration link if different from url (string or null)
+- registration_deadline: ISO date string YYYY-MM-DD — the LAST date to register/buy a ticket, only if explicitly stated (null otherwise; never guess it from the start date)
+- cfp_deadline: ISO date string YYYY-MM-DD — call-for-speakers/papers closing date, only if explicitly stated (null otherwise)
+- mode: one of "in_person", "online", "hybrid" — use "online" for webinars/virtual events with no physical venue, "hybrid" only when both in-person and virtual attendance are explicitly offered, otherwise "in_person"
+- price_inr: lowest ticket/registration price in INR as an integer (e.g. 4999), 0 if free, null if no price is stated. Convert foreign currency only if an INR price is also shown; otherwise null.
 
 Rules:
 - Only include events IN INDIA
@@ -236,6 +241,24 @@ def extract_events(results: list[dict], query: str, category: str, gemini: genai
         events = []
         for item in events_data:
             try:
+                # Normalize P0 fields the LLM may return loosely.
+                mode = str(item.get("mode") or "").lower().replace("-", "_").replace(" ", "_")
+                if mode not in ("in_person", "online", "hybrid"):
+                    mode = "online" if item.get("event_type") == "webinar" else None
+                price = item.get("price_inr")
+                if isinstance(price, str):
+                    digits = "".join(ch for ch in price if ch.isdigit())
+                    price = int(digits) if digits else None
+                elif isinstance(price, float):
+                    price = int(price)
+                elif not isinstance(price, int):
+                    price = None
+                is_free = item.get("is_free")
+                if price == 0:
+                    is_free = True
+                elif is_free is True and price is None:
+                    price = 0
+
                 event = Event(
                     name=item.get("name", ""),
                     event_type=item.get("event_type"),
@@ -247,12 +270,19 @@ def extract_events(results: list[dict], query: str, category: str, gemini: genai
                     description=item.get("description"),
                     url=item.get("url"),
                     organizer=item.get("organizer"),
-                    is_free=item.get("is_free"),
+                    is_free=is_free,
                     registration_url=item.get("registration_url"),
+                    registration_deadline=item.get("registration_deadline"),
+                    cfp_deadline=item.get("cfp_deadline"),
+                    mode=mode,
+                    price_inr=price,
                     source_query=query,
                     category=category,
                 )
                 if event.name and event.url:
+                    # Provisional score for storage; the API recomputes it on
+                    # read with real organizer frequencies (scoring.py).
+                    event.quality_score = compute_quality_score(event.model_dump(mode="json"))
                     events.append(event)
             except Exception as e:
                 log.warning(f"Skipping malformed event: {e}")

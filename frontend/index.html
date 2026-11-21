@@ -28,8 +28,8 @@
   <div class="hero" id="top">
     <div class="hero-text">
       <div class="eyebrow" id="hero-eyebrow">Live signal · scanning India</div>
-      <h1 class="title">Your radar for India's tech events.</h1>
-      <p class="sub">AI and Product events, surfaced automatically — no more digging through NASSCOM mailers, X threads and WhatsApp forwards to find out what you missed.</p>
+      <h1 class="title"><span class="hero-num" id="hero-open">—</span> AI &amp; Product events are open in India right now.</h1>
+      <p class="sub">Every event worth your time, in one place — scanned daily from NASSCOM mailers, organizer sites and the usual scattered places, <b>quality-scored</b>, and sorted by what's <b>closing soonest</b>, so you never find out after registration shut.</p>
       <div class="cta-row">
         <a href="#browse-anchor" class="cta-primary">Browse events ↓</a>
         <a href="#how-anchor" class="cta-ghost">See how it works</a>
@@ -46,6 +46,19 @@
       <div class="sweep" aria-hidden="true"></div>
     </div>
   </div>
+
+  <!-- P0-1: live counters, computed from /stats, each a pre-filtered view -->
+  <section class="counters" id="counters" aria-label="Quick event views"></section>
+  <p class="source-line" id="source-line">Scanned daily · updated 07:00 IST</p>
+
+  <!-- P0-2: registration / CFP deadlines closing within 7 days -->
+  <section class="rail hidden" id="closing-rail">
+    <div class="rail-head">
+      <h2>Closing soon — don't miss the deadline</h2>
+      <p>Registration &amp; CFP deadlines in the next 7 days, soonest first.</p>
+    </div>
+    <div class="rail-items" id="rail-items"></div>
+  </section>
 
   <section class="about">
     <div class="eyebrow-sm">Why this exists</div>
@@ -98,6 +111,12 @@
         <button type="button" class="btn-ghost" id="show-new-btn" onclick="showNewOnly()">Show New Only</button>
         <button type="button" class="btn-ghost" id="mark-seen-btn" onclick="markAllSeen()">Mark All Seen</button>
       </div>
+      <select id="sort-select" aria-label="Sort events" onchange="handleSort()">
+        <option value="score">Sort: Top scored</option>
+        <option value="closing">Sort: Closing soonest</option>
+        <option value="soonest">Sort: Starting soonest</option>
+        <option value="newest">Sort: Newest found</option>
+      </select>
     </div>
 
     <div class="filters">
@@ -127,6 +146,15 @@
         <div class="pillgroup" id="city-filters">
           <button class="pill active" data-filter="city" data-value="">All cities</button>
         </div>
+        <div class="pillgroup" id="mode-filters">
+          <button class="pill active" data-filter="mode" data-value="">Any mode</button>
+          <button class="pill" data-filter="mode" data-value="in_person">In person</button>
+          <button class="pill" data-filter="mode" data-value="online">Online</button>
+          <button class="pill" data-filter="mode" data-value="hybrid">Hybrid</button>
+        </div>
+        <div class="pillgroup" id="free-filters">
+          <button class="pill" data-filter="free" data-value="1" id="free-pill">Free only</button>
+        </div>
       </div>
       <div class="viewtoggle" role="group" aria-label="Layout">
         <button type="button" class="viewbtn active" data-view="grid" onclick="setView('grid')" aria-label="Grid view">
@@ -137,6 +165,15 @@
         </button>
       </div>
     </div>
+
+    <!-- P0-4: current filters/search/sort as a shareable URL -->
+    <div class="sharebar">
+      <span class="sharebar-label">Share this view</span>
+      <code id="share-url">—</code>
+      <button type="button" class="btn-copy" id="copy-link-btn" onclick="copyShareLink()">Copy link</button>
+      <button type="button" class="btn-ghost" onclick="clearAllFilters()">Clear filters</button>
+    </div>
+    <p class="resultline" id="result-line" aria-live="polite"></p>
 
     <div class="events-container grid" id="events-container">
       <div class="loading-state">
