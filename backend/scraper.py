@@ -1,7 +1,7 @@
 import os
 import json
 import logging
-from datetime import datetime
+from datetime import date, datetime
 from tavily import TavilyClient
 from exa_py import Exa
 from google import genai
@@ -17,8 +17,12 @@ log = logging.getLogger(__name__)
 GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.5-flash-lite")
 GROQ_MODEL = os.environ.get("GROQ_MODEL", "openai/gpt-oss-120b")
 
-# Domain-specific query sets. Kept within Tavily's free 1000-searches/month
-# budget (~33/day): AI (20/day) + Product (13/day) = 33/day.
+# Domain-specific query sets. Tavily free tier = 1,000 credits/month, and
+# "advanced" depth costs 2 credits/search — the old 35 advanced searches/day
+# (~2,100 credits/month) blew the cap mid-month. Now: basic depth (1 credit)
+# + alternating-day rotation of the Tavily query lists (see
+# select_queries_for_today) ≈ 17-18 Tavily credits/day ≈ ~525/month, with
+# Exa as automatic fallback if Tavily still errors.
 AI_QUERIES = [
     "AI conference India 2026",
     "artificial intelligence summit India 2026",
@@ -159,16 +163,52 @@ Rules:
 JSON array:"""
 
 
-def search_events(query: str, tavily: TavilyClient) -> list[dict]:
+ALLOWED_EVENT_TYPES = ("conference", "meetup", "workshop", "hackathon", "summit", "webinar", "other")
+_EVENT_TYPE_SYNONYMS = {
+    "symposium": "conference", "conclave": "conference", "congress": "conference",
+    "expo": "conference", "forum": "conference", "convention": "conference",
+    "seminar": "workshop", "training": "workshop", "bootcamp": "workshop",
+    "virtual": "webinar", "online": "webinar", "networking": "meetup", "mixer": "meetup",
+}
+
+
+def normalize_event_type(value) -> str:
+    """The LLM is told the allowed values but still invents near-synonyms
+    (e.g. "symposium"), which violate the DB CHECK constraint and used to
+    abort the whole scrape. Map synonyms, everything else -> "other"."""
+    v = str(value or "").strip().lower()
+    if v in ALLOWED_EVENT_TYPES:
+        return v
+    return _EVENT_TYPE_SYNONYMS.get(v, "other")
+
+
+def select_queries_for_today(queries: list[str], today: date = None, rotate: bool = True) -> list[str]:
+    """Alternating-day rotation: even ordinal days run even-indexed queries,
+    odd days run odd-indexed ones. Every query still runs every other day,
+    so coverage is unchanged — an event surfaces at most a day later.
+    Set SCRAPE_ALL_QUERIES=1 (or rotate=False) for a full sweep."""
+    if not rotate or os.environ.get("SCRAPE_ALL_QUERIES") == "1":
+        return queries
+    parity = (today or date.today()).toordinal() % 2
+    return [q for i, q in enumerate(queries) if i % 2 == parity]
+
+
+def search_events(query: str, tavily: TavilyClient, exa: Exa = None) -> list[dict]:
     try:
         response = tavily.search(
             query=query,
-            search_depth="advanced",
+            # "basic" = 1 credit/search; "advanced" (2 credits) exhausted the
+            # free 1,000/month cap mid-month. Result quality is fine here
+            # because the LLM extraction step filters aggressively anyway.
+            search_depth="basic",
             max_results=10,
             include_answer=False,
         )
         return response.get("results", [])
     except Exception as e:
+        if exa is not None:
+            log.warning(f"Tavily search failed for '{query}' ({e}); falling back to Exa")
+            return search_events_exa(query, exa)
         log.error(f"Tavily search failed for '{query}': {e}")
         return []
 
@@ -261,7 +301,7 @@ def extract_events(results: list[dict], query: str, category: str, gemini: genai
 
                 event = Event(
                     name=item.get("name", ""),
-                    event_type=item.get("event_type"),
+                    event_type=normalize_event_type(item.get("event_type")),
                     start_date=item.get("start_date"),
                     end_date=item.get("end_date"),
                     city=item.get("city"),
@@ -310,14 +350,25 @@ def run_scrape(categories: list[str] = None) -> ScrapeResult:
 
     for category in categories:
         provider = CATEGORIES[category]["search_provider"]
-        for query in CATEGORIES[category]["queries"]:
+        # Rotate only the Tavily lists (AI/Product) — the Exa lists are tiny
+        # (3 queries each) and comfortably inside Exa's free credits daily.
+        queries = (select_queries_for_today(CATEGORIES[category]["queries"])
+                   if provider == "tavily" else CATEGORIES[category]["queries"])
+        if len(queries) < len(CATEGORIES[category]["queries"]):
+            log.info(f"[{category}/{provider}] Rotation: {len(queries)}/{len(CATEGORIES[category]['queries'])} queries today (rest tomorrow)")
+        for query in queries:
             log.info(f"[{category}/{provider}] Searching: {query}")
-            results = search_events_exa(query, exa) if provider == "exa" else search_events(query, tavily)
+            results = search_events_exa(query, exa) if provider == "exa" else search_events(query, tavily, exa)
             events = extract_events(results, query, category, gemini, groq)
             log.info(f"  Found {len(events)} events from '{query}'")
 
             for event in events:
-                is_new, _ = upsert_event(db, event)
+                # One bad row must never abort the remaining ~40 queries.
+                try:
+                    is_new, _ = upsert_event(db, event)
+                except Exception as e:
+                    log.error(f"  Skipping '{event.name}' — insert failed: {e}")
+                    continue
                 if is_new:
                     new_count += 1
                     all_events.append(event)

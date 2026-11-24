@@ -10,7 +10,7 @@
 | [Groq](https://console.groq.com/keys) | Free | Fallback extraction model, used automatically if Gemini's daily quota runs out |
 | [Supabase](https://supabase.com) | Free | Postgres database |
 
-Search usage is ~41 queries/day across Tavily (AI + Product, ~35/day) and Exa (Tech + Startup, ~6/day). Tavily's share runs slightly over its 1000/month free tier (~$0.40/month in pay-as-you-go overage); Exa's share stays comfortably within its free monthly credits. Extraction (Gemini/Groq) stays well under both providers' free daily limits regardless.
+Search usage: Tavily (AI + Product) runs at **basic depth (1 credit/search) with alternating-day query rotation** — ~17–18 of the 35 queries per day, so ≈525 credits/month against the 1,000/month free tier. (Advanced depth at 2 credits/search previously burned ~2,100/month and hard-stopped mid-month.) If a Tavily call still errors, that query automatically falls back to Exa. Exa also directly runs Tech + Startup (~6/day), comfortably within its free monthly credits. Set `SCRAPE_ALL_QUERIES=1` for a one-off full sweep. Extraction (Gemini/Groq) stays well under both providers' free daily limits regardless.
 
 ## Step 2: Set up Supabase
 

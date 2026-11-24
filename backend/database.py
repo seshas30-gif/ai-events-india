@@ -36,12 +36,14 @@ def upsert_event(client: Client, event: Event) -> tuple[bool, str]:
 
     try:
         result = client.table("events").insert(payload).execute()
-    except Exception:
-        # Pre-migration DB (P0 columns absent) — retry without them so the
-        # daily scrape keeps working until schema.sql is applied.
-        stripped = {k: v for k, v in payload.items() if k not in P0_COLUMNS}
-        if stripped == payload:
+    except Exception as e:
+        # Only retry stripped for the pre-migration case (error names a P0
+        # column). Retrying other failures (e.g. a CHECK violation) just
+        # fails identically and hides the real error.
+        msg = str(e).lower()
+        if not any(col in msg for col in P0_COLUMNS):
             raise
+        stripped = {k: v for k, v in payload.items() if k not in P0_COLUMNS}
         result = client.table("events").insert(stripped).execute()
     return True, result.data[0]["id"]
 
